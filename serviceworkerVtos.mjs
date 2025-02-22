@@ -1,12 +1,12 @@
 
 const MAIN_CACHE_NAME = "main-cache";
 const CACHED_URLS = [
-    "/index.html",
-    "/styles/index.css",
-    "/regVencimientos.mjs",
-    "/favicon.png",
-    "/fuse.basic.min.mjs",
-    "/offline.html",
+    "./index.html",
+    "./styles/index.css",
+    "./regVencimientos.mjs",
+    "./favicon.png",
+    "./fuse.basic.min.mjs",
+    "./offline.html",
 ]
 
 self.addEventListener("install", (ev)=>{

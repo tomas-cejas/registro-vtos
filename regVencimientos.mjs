@@ -15,7 +15,7 @@ class Vencimiento {
 }
 
 if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/serviceworkerVtos.mjs")
+    navigator.serviceWorker.register("./serviceworkerVtos.mjs")
     .then((registration)=>{
         console.log("Service Worker registered with scope:", registration.scope);
     })
