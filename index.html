@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="./styles/index.css">
+        <link rel="icon" type="image/x-icon" href="./favicon.png">
+        <link rel="manifest" href="install/registro-vencimientos/manifest.json"/>
+        <title>Vencimientos</title>
+    </head>
+    <body>
+        <div id="main-screen">
+
+            <div id="hide-when-searching">
+                <h1>Registro de vencimientos</h1>
+
+                <div class="inline-button-container">
+                    <button id="install" hidden>Instalar app</button>
+                    <button id="download">Descargar registro</button>
+                    <button id="delete-all">Borrar todo</button>
+                </div>
+    
+            </div>
+
+            <input id="search" type="search" autocomplete="off" placeholder="Buscar o crear...">
+
+            <div id="add-vto-menu" hidden>
+                <h1>Agregar registro</h1>
+
+                <div class="add-item-entry">
+                    <label for="add-vto-name">Nombre: </label>
+                    <input id="add-vto-name" type="text" placeholder='"Manaos Cola"' tabindex="1">
+                </div>
+
+                <div class="add-item-entry">
+                    <label for="add-vto-fecha">Fecha: </label>
+                    <input id="add-vto-fecha" type="date"tabindex="2">
+                </div>
+
+                <div class="inline-button-container">
+                    <button id="add-vto" tabindex="3">Agregar</button>
+                    <button id="add-vto-return" tabindex="4">Volver</button>
+                </div>
+
+            </div>
+            
+            <div id="items-display-container"></div>
+
+        </div>
+
+        <script type="module" src="./regVencimientos.mjs"></script>
+    </body>
+</html>
