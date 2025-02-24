@@ -188,6 +188,13 @@ option:hover{
 	text-align: center;
 	box-sizing: border-box;
 }
+.options-container >* {
+	font-size: x-large;
+	width: 80%;
+	min-height: 4ch;
+	display: block;
+	margin: 0.5ch auto 0.5ch auto ;
+}
 .inline-button-container > * {
 	font-size: x-large;
 	flex: 1 1 auto; /* Grow equally unless one needs more space */

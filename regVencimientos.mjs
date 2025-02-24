@@ -12,6 +12,16 @@ class Vencimiento {
     toString() {
         return `${this.fecha}: ${this.nombre}`;
     }
+    static fromString(vtoString) {
+        const splitIdx = vtoString.indexOf(":");
+
+        if (splitIdx === -1) throw new TypeError("Invalid vto string.");
+
+        const fecha = vtoString.slice(0, splitIdx);
+        const nombre = vtoString.slice(splitIdx + 2);
+
+        return new Vencimiento(nombre, fecha);
+    }
 }
 
 if ("serviceWorker" in navigator) {
@@ -119,16 +129,19 @@ const vencimientosDatabase = await (async ()=>{
     }
 
     function clear() {
-
-        const clearTransaction = db.transaction(OBJ_STORE_NAME, "readwrite");
-        const clearRequest = clearTransaction.objectStore(OBJ_STORE_NAME).clear();
-
-        clearTransaction.oncomplete = ()=>{
-            console.log(`Database cleared: ${OBJ_STORE_NAME}`);
-        }
-        clearTransaction.onerror = (err)=>{
-            console.error("Error clearing products on database:", err);
-        }
+        return new Promise((resolve, reject)=>{
+            const clearTransaction = db.transaction(OBJ_STORE_NAME, "readwrite");
+            const clearRequest = clearTransaction.objectStore(OBJ_STORE_NAME).clear();
+    
+            clearTransaction.oncomplete = ()=>{
+                console.log(`Database cleared: ${OBJ_STORE_NAME}`);
+                resolve();
+            }
+            clearTransaction.onerror = (err)=>{
+                console.error("Error clearing products on database:", err);
+                reject(err);
+            }
+        });
     }
 
     function remove(key) {
@@ -152,6 +165,14 @@ const vencimientosDatabase = await (async ()=>{
     }
 })();
 
+
+function displayInfo(msg) {
+    const display = document.getElementById("info-msg");
+    display.innerText = msg;
+    const animation = display.getAnimations()[0];
+    animation.cancel();
+    animation.play();
+}
 
 const addVtoMenu = (()=>{
     
@@ -199,7 +220,7 @@ const addVtoMenu = (()=>{
         const name = nameInput.value;
         const date = dateInput.value;
     
-        const outcomeDisplay = addVtoReturnButton.parentElement.insertAdjacentElement("afterend", document.createElement("div"));
+        //const outcomeDisplay = addVtoReturnButton.parentElement.insertAdjacentElement("afterend", document.createElement("div"));
     
         const vto = new Vencimiento(name, date);
 
@@ -212,11 +233,11 @@ const addVtoMenu = (()=>{
             
             vtosGrid.appendTile(vtosGrid.createTile(`${vto.fecha}: ${vto.nombre}`));
 
-            outcomeDisplay.innerText = vto;
+            displayInfo(`${vto}`);
         })
-        .catch((err)=>{
+        .catch(err=>{
             console.error(err)
-            outcomeDisplay.innerText = err
+            displayInfo("Error: " + err);
         });
 
     }
@@ -227,7 +248,7 @@ const addVtoMenu = (()=>{
         addButton,
         returnButton,
 
-        addProductHandler: addVtoHandler,
+        addVtoHandler,
         hide,
         unHide,
     }
@@ -301,16 +322,16 @@ const vtosGrid = (()=> {
         appendTile(tile) {
             this.element.appendChild(tile);
         },
-        fill(productsArray, maxAmount = Infinity) {
+        fill(vtosArray, maxAmount = Infinity) {
             this.clear();
             let i = 0;
-            for (const product of productsArray) {
+            for (const vto of vtosArray) {
                 if (i++ > maxAmount) return;
 
-                this.appendTile(this.createTile(`${product.fecha}: ${product.nombre}`));
+                this.appendTile(this.createTile(`${vto}`));
 
-                if (product.nombre === "undefined") {
-                    console.warn(productsArray)
+                if (vto.nombre === "undefined") {
+                    console.warn(vtosArray);
                 }
             }
         },
@@ -374,6 +395,69 @@ function fuseFromVtosArray(vtosArray) {
 }
 
 
+document.getElementById("options-button").addEventListener("click", _=>{
+    document.getElementById("options-container").hidden ^= true;
+})
+
+document.getElementById("import").addEventListener("click", function importVtos() {
+
+    const userConfirmed = window.confirm("Esto BORRARÁ los registros actuales. Continuar?");
+    if (!userConfirmed) return;
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json";
+
+    input.addEventListener("change", _=>{
+        const file = input.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = _=> {
+                try {
+                    const vtosArray = JSON.parse(reader.result);
+
+                    vtosArray.forEach((vtoString, i)=>{
+                        vtosArray[i] = Vencimiento.fromString(vtoString)
+                    });
+
+                    vencimientosDatabase.clear()
+                    .then(_=>{
+                        addMultipleVtos(vtosArray);
+                    });
+
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+            reader.readAsText(file);
+        }
+
+    });
+    input.click();
+});
+
+function addMultipleVtos(vtosArray) {
+    vencimientosDatabase.store(vtosArray)
+    .then((result)=>{
+        allVtos.length = 0;
+        
+        for (const vto of vtosArray) {
+            allVtos.push(vto);
+        }
+        allVtos.sort();
+        fuse = fuseFromVtosArray(allVtos);
+        vtosGrid.fill(vtosArray);
+
+        displayInfo(`${vtosArray.length} registros importados.`);
+    })
+    .catch(err=>{
+        console.error(err);
+        displayInfo("Error al importar: " + err);
+    })
+}
+
+
+
 function downloadObjAsJson(obj, filename = "descarga") {
     const json = JSON.stringify(obj, null, 2);
     const blob = new Blob([json], {type: "application/json"});
@@ -385,10 +469,10 @@ function downloadObjAsJson(obj, filename = "descarga") {
     URL.revokeObjectURL(url);
 }
 
-search.addEventListener("focus", _=>{
+search.addEventListener("focus", function openSearchMenu() {
     document.getElementById("hide-when-searching").hidden = true;
-    //window.dispatchEvent(new Event("resize"));
 });
+
 
 let clickingOn = null;
 
@@ -402,10 +486,20 @@ document.addEventListener("mouseup", _=> {
     const addingVto = !document.getElementById("add-vto-menu").hidden;
 
     if (document.activeElement !== search && searching && !addingVto) {
-        document.getElementById("hide-when-searching").hidden = false;
-        //search.dispatchEvent(new Event("blur")) // search.blur() doesn't seem to trigger the blur event
+        closeSearchMenu();
     }
-})
+});
+
+function closeSearchMenu() {
+    document.getElementById("hide-when-searching").hidden = false;
+    document.getElementById("options-container").hidden = true;
+    //search.dispatchEvent(new Event("blur")) // search.blur() doesn't seem to trigger the blur event
+}
+
+navigator.virtualKeyboard.addEventListener("geometrychange", (event) => {
+    //displayInfo("KEYBOARD CHANGED")
+});
+
 
 
 function scrollToTop(target) {
@@ -450,6 +544,3 @@ window.addEventListener("beforeinstallprompt", (ev) => {
         }
     });
 });
-
-
-//test3
